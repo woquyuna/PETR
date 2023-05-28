@@ -92,7 +92,8 @@ class PETRTransformer(BaseModule):
         pos_embed = pos_embed.permute(1, 3, 4, 0, 2).reshape(-1, bs, c) # [bs, n, c, h, w] -> [n*h*w, bs, c]
         query_embed = query_embed.unsqueeze(1).repeat(
             1, bs, 1)  # [num_query, dim] -> [num_query, bs, dim]
-        mask = mask.view(bs, -1)  # [bs, n, h, w] -> [bs, n*h*w]
+        if mask is not None:
+            mask = mask.view(bs, -1)  # [bs, n, h, w] -> [bs, n*h*w]
         target = torch.zeros_like(query_embed)
 
         # out_dec: [num_layers, num_query, bs, dim]
@@ -228,9 +229,9 @@ class PETRTransformerDecoderLayer(BaseTransformerLayer):
             norm_cfg=norm_cfg,
             ffn_num_fcs=ffn_num_fcs,
             **kwargs)
-        assert len(operation_order) == 6
-        assert set(operation_order) == set(
-            ['self_attn', 'norm', 'cross_attn', 'ffn'])
+        # assert len(operation_order) == 6
+        # assert set(operation_order) == set(
+        #     ['self_attn', 'norm', 'cross_attn', 'ffn'])
         self.use_checkpoint = with_cp
     
     def _forward(self, 

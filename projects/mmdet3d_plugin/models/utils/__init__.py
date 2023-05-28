@@ -9,12 +9,15 @@ from .detr import Deformable3DDetrTransformerDecoder
 from .detr3d_transformer import Detr3DTransformer, Detr3DTransformerDecoder, Detr3DCrossAtten
 from .positional_encoding import SinePositionalEncoding3D, LearnedPositionalEncoding3D
 from .petr_transformer import PETRTransformer, PETRDNTransformer, PETRMultiheadAttention, PETRTransformerEncoder, PETRTransformerDecoder
+from .attention_pooling import PoolingChannel, PoolingToken, ConvToken, ConvChannel, LinearChannel, PoolingChannel2
 
 __all__ = ['DGCNNAttn', 'Deformable3DDetrTransformerDecoder', 
-           'Detr3DTransformer', 'Detr3DTransformerDecoder', 'Detr3DCrossAtten'
+           'Detr3DTransformer', 'Detr3DTransformerDecoder', 'Detr3DCrossAtten',
            'SinePositionalEncoding3D', 'LearnedPositionalEncoding3D',
            'PETRTransformer', 'PETRDNTransformer', 'PETRMultiheadAttention', 
-           'PETRTransformerEncoder', 'PETRTransformerDecoder'
+           'PETRTransformerEncoder', 'PETRTransformerDecoder',
+           'PoolingChannel','PoolingToken',
+           'ConvToken', 'ConvChannel', 'LinearChannel', 'PoolingChannel2'
            ]
 
 

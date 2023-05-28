@@ -13,4 +13,6 @@ from .petr_head import PETRHead
 from .petrv2_head import PETRv2Head
 from .petr_head_seg import PETRHead_seg
 from .petrv2_dnhead import PETRv2DNHead
-__all__ = ['DGCNN3DHead', 'Detr3DHead','PETRHead','PETRv2Head','PETRHead_seg', 'PETRv2DNHead']
+from .petr_head_onnx import PETRHeadONNX
+from .petr_head_pth import PETRHeadPTH
+__all__ = ['DGCNN3DHead', 'Detr3DHead','PETRHead','PETRv2Head','PETRHeadseg', 'PETRv2DNHead','PETRHeadONNX', 'PETRHeadPTH']

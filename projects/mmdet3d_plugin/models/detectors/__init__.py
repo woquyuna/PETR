@@ -12,4 +12,5 @@ from .detr3d import Detr3D
 from .petr3d import Petr3D
 from .petr3d_seg import Petr3D_seg
 from .mspetr3d import MSPetr3D
-__all__ = ['ObjDGCNN', 'Detr3D', 'Petr3D', 'MSPetr3D', 'Petr3D_seg']
+from .petr3d_onnx import Petr3DONNX
+__all__ = ['ObjDGCNN', 'Detr3D', 'Petr3D', 'MSPetr3D', 'Petr3D_seg','Petr3DONNX']
