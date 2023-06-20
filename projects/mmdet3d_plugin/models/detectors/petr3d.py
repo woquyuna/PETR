@@ -49,6 +49,7 @@ class Petr3D(MVXTwoStageDetector):
                              train_cfg, test_cfg, pretrained)
         self.grid_mask = GridMask(True, True, rotate=1, offset=False, ratio=0.5, mode=1, prob=0.7)
         self.use_grid_mask = use_grid_mask
+        self.metas = None
 
     def extract_img_feat(self, img, img_metas):
         """Extract features of images."""
@@ -186,6 +187,11 @@ class Petr3D(MVXTwoStageDetector):
     def simple_test_pts(self, x, img_metas, rescale=False):
         """Test function of point cloud branch."""
         outs = self.pts_bbox_head(x, img_metas)
+        return outs
+        # print(outs)
+        # outs['all_cls_scores'][-1].cpu().detach().numpy().tofile('/mnt/apollo/all_cls_scores_pth.bin')
+        # outs['all_bbox_preds'][-1].cpu().detach().numpy().tofile('/mnt/apollo/all_bbox_preds_pth.bin')
+
         bbox_list = self.pts_bbox_head.get_bboxes(
             outs, img_metas, rescale=rescale)
         bbox_results = [
@@ -199,8 +205,11 @@ class Petr3D(MVXTwoStageDetector):
         img_feats = self.extract_feat(img=img, img_metas=img_metas)
 
         bbox_list = [dict() for i in range(len(img_metas))]
+
         bbox_pts = self.simple_test_pts(
             img_feats, img_metas, rescale=rescale)
+        return bbox_pts
+
         for result_dict, pts_bbox in zip(bbox_list, bbox_pts):
             result_dict['pts_bbox'] = pts_bbox
         return bbox_list
@@ -230,4 +239,11 @@ class Petr3D(MVXTwoStageDetector):
         for result_dict, pts_bbox in zip(bbox_list, bbox_pts):
             result_dict['pts_bbox'] = pts_bbox
         return bbox_list
+
+    def forward_dummy(self, img):
+        # dummy_metas = None
+        return self.forward_test(img=img, img_metas=[[self.metas]])
+
+    def set_metas(self, metas):
+        self.metas = metas  # dict
     

@@ -77,16 +77,11 @@ class nuscenceData:
     def load_data(self, model_cfg):
         for data in self._data_loader:
             img = data['img'][0].data[0]
-            B, N, C, H, W = img.size()
-            data['img'][0] = img.reshape(B * N, C, H, W)
-
+            data['img'][0] = img.to("cuda:0")
             img_metas = data['img_metas'][0].data[0][0]
-            img_metas['lidar2img'] = img2lidar_tensor_generator([img_metas])
-            img_metas['voxelgrid'] = voxelgrid_generator(img_metas, model_cfg)
-            img_metas['sin_embed'] = np.fromfile("/mnt/apollo/input_sin_embed_1x6x256x15x25.bin", dtype=np.float32)
-            img_metas['sin_embed'] = torch.tensor(img_metas['sin_embed'].reshape(1, 6, 256, 15, 25), dtype=torch.float32)
-            img_metas['query_embeds'] = np.fromfile("/mnt/apollo/input_query_embeds_900x256.bin", dtype=np.float32)
-            img_metas['query_embeds'] = torch.tensor(img_metas['query_embeds'].reshape(900, 256), dtype=torch.float32)
+            # lidar2img = list(torch.tensor(arr) for arr in img_metas['lidar2img'])
+            # lidar2img = np.asarray(img_metas['lidar2img'])
+            # lidar2img = torch.tensor(lidar2img, dtype=torch.float32)
 
             data['img_metas'][0] = []
             data['img_metas'][0].append(img_metas)
@@ -96,8 +91,36 @@ class nuscenceData:
             # img_metas['lidar2img'].cpu().detach().numpy().tofile('/mnt/apollo/lidar2img.bin')
 
             # print(img_metas)
+            # print(img_metas['sample_idx'])
+            return data, data['img'][0], img_metas['lidar2img']
 
-            return data, data['img'][0], img_metas['lidar2img'],  img_metas['voxelgrid']
+    def dump_data(self, model, max_samples=30, output_path='/mnt/apollo'):
+        for i, data in enumerate(self._data_loader):
+            if i >= max_samples:
+                break
+            img = data['img'][0].data[0]
+            data['img'][0] = img.to("cuda:0")
+            img_metas = data['img_metas'][0].data[0][0]
+            img2lidar = img2lidar_tensor_generator([img_metas])
+            data['img_metas'][0] = []
+            data['img_metas'][0].append(img_metas)
+
+            name = img_metas['sample_idx']
+            # save input
+            data['img'][0].cpu().detach().numpy().tofile(output_path + '/' + name + '_imgs.bin')
+            img2lidar.cpu().detach().numpy().tofile(output_path + '/' + name + '_lidar2img.bin')
+            # infer
+            model.set_data(data)
+            outs = model(data['img'][0], img_metas['lidar2img'])
+
+            # save output
+            tag = 'LinfNormRelu'
+            outs['all_cls_scores'][-1].cpu().detach().numpy().tofile(output_path + '/' + name + '_' + tag + '_all_cls_scores.bin')
+            outs['all_bbox_preds'][-1].cpu().detach().numpy().tofile(output_path + '/' + name + '_' + tag + '_all_bbox_preds.bin')
+
+
+
+
 
 class PetrWrapper(torch.nn.Module):
     def __init__(self, org_model):
@@ -109,41 +132,13 @@ class PetrWrapper(torch.nn.Module):
         self.data = data
 
     def forward(self, img, lidar2img):
+        self.org_model.eval()
+        self.org_model.to("cuda:0")
+
         with torch.no_grad():
-            outs = self.org_model(return_loss=False, rescale=True,**self.data)
-        all_cls_scores = outs['all_cls_scores'][-1]
-        all_bbox_preds = outs['all_bbox_preds'][-1]
-        print(all_cls_scores.shape)
-        print(all_bbox_preds.shape)
-        # all_cls_scores = all_cls_scores.reshape(3, 1, 900, 10)
-        # all_bbox_preds = all_bbox_preds.reshape(3, 1, 900, 10)
-        all_cls_scores.cpu().detach().numpy().tofile('/mnt/apollo/all_cls_scores.bin')
-        all_bbox_preds.cpu().detach().numpy().tofile('/mnt/apollo/all_bbox_preds.bin')
+            outs = self.org_model(return_loss=False, rescale=True, **self.data)
 
-        return all_cls_scores, all_bbox_preds
-
-def get_onnx_model(model, img, lidar2img, grid, out_path, device):
-    model.eval()
-    model = model.to(device)
-    img_tensor = img.to(device)
-    lidar2img = lidar2img.to(device)
-    grid = grid.to(device)
-
-    torch.onnx.export(
-        model,
-        tuple([img_tensor, lidar2img]),
-        # tuple([img_tensor, lidar2img, grid]),
-        out_path,
-        export_params=True,
-        opset_version=11,
-        input_names=["img", "lidar2img"],
-        # input_names=["img", "lidar2img", "grid"],
-        output_names=["all_cls_scores", "all_bbox_preds"],
-        do_constant_folding=True,
-        keep_initializers_as_inputs=False,
-        verbose=True
-    )
-    print("export onnx success:", out_path)
+        return outs
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -320,20 +315,21 @@ def main():
     # build the model and load checkpoint
     cfg.model.train_cfg = None
     model = build_model(cfg.model, test_cfg=cfg.get('test_cfg'))
-    # print(model)
 
     checkpoint = load_checkpoint(model, args.checkpoint, map_location='cpu')
 
-    dataset = data_loader.dataset
-    for data in dataset:
-        model.set_metas(data['img_metas'][0].data)
-        break
+    # dataset = data_loader.dataset
+    # for data in dataset:
+    #     model.set_metas(data['img_metas'][0].data)
+    #     break
 
-    nus_data = nuscenceData(data_loader)
-    data, img, lidar2img, grid = nus_data.load_data(cfg.model)
     petr_net = PetrWrapper(model)
-    petr_net.set_data(data)
-    get_onnx_model(petr_net, img, lidar2img, grid, "/mnt/apollo/hozonlinearc_epoch32.onnx", 'cpu')
+    nus_data = nuscenceData(data_loader)
+    nus_data.dump_data(petr_net, output_path='/mnt/apollo/petr_data/')
+    # data, img, lidar2img = nus_data.load_data(cfg.model)
+    # petr_net.set_data(data)
+    # outs = petr_net(img, lidar2img)
+    # print(outs)
 
     import sys
     sys.exit(0)

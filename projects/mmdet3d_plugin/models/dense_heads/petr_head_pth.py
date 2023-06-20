@@ -440,7 +440,6 @@ class PETRHeadPTH(AnchorFreeHead):
         query_embeds.cpu().detach().numpy().tofile('/mnt/apollo/input_query_embeds_900x256.bin')
         print("query embeds has written to /mnt/apollo")
 
-
         reference_points = reference_points.unsqueeze(0).repeat(batch_size, 1, 1) #.sigmoid()
 
         outs_dec, _ = self.transformer(x, masks, query_embeds, pos_embed, self.reg_branches)
@@ -472,8 +471,8 @@ class PETRHeadPTH(AnchorFreeHead):
             outputs_classes.append(outputs_class)
             outputs_coords.append(outputs_coord)
 
-        print("  PETR HEAD: cls_branches {}ms".format(cls_time*1000))
-        print("  PETR HEAD: reg_branches {}ms".format(reg_time*1000))
+        # print("  PETR HEAD: cls_branches {}ms".format(cls_time*1000))
+        # print("  PETR HEAD: reg_branches {}ms".format(reg_time*1000))
 
         all_cls_scores = torch.stack(outputs_classes)
         all_bbox_preds = torch.stack(outputs_coords)
