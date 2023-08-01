@@ -189,6 +189,19 @@ def main():
         dist=distributed,
         shuffle=False)
 
+    # check 7v dataset
+    for data in dataset:
+        print(data)
+        # print(data['img'][0].data.shape)
+        # print(len(data['img_metas'][0].data['lidar2img']))
+        # print(data['img_metas'][0].data['lidar2img'][0].shape)
+        import numpy as np
+        lidar2imgs = np.stack(data['img_metas'][0].data['lidar2img'], axis=0)
+        lidar2imgs.tofile('/mnt/data/userdata/hjj/code/PETR7v/PETR/lidar2imgs_7x4x4.bin')
+        break
+    import sys
+    sys.exit(0)
+
     # build the model and load checkpoint
     cfg.model.train_cfg = None
     model = build_model(cfg.model, test_cfg=cfg.get('test_cfg'))
