@@ -74,7 +74,7 @@ class nuscenceData:
     def __init__(self, data_loader):
         self._data_loader = data_loader
 
-    def load_data(self, model_cfg):
+    def load_data(self, model_cfg, num_camera=6):
         for data in self._data_loader:
             img = data['img'][0].data[0]
             B, N, C, H, W = img.size()
@@ -83,8 +83,8 @@ class nuscenceData:
             img_metas = data['img_metas'][0].data[0][0]
             img_metas['lidar2img'] = img2lidar_tensor_generator([img_metas])
             img_metas['voxelgrid'] = voxelgrid_generator(img_metas, model_cfg)
-            img_metas['sin_embed'] = np.fromfile("/mnt/apollo/input_sin_embed_1x6x256x15x25.bin", dtype=np.float32)
-            img_metas['sin_embed'] = torch.tensor(img_metas['sin_embed'].reshape(1, 6, 256, 15, 25), dtype=torch.float32)
+            img_metas['sin_embed'] = np.fromfile("/mnt/apollo/input_sin_embed_1x{}x256x15x25.bin".format(num_camera), dtype=np.float32)
+            img_metas['sin_embed'] = torch.tensor(img_metas['sin_embed'].reshape(1, num_camera, 256, 15, 25), dtype=torch.float32)
             img_metas['query_embeds'] = np.fromfile("/mnt/apollo/input_query_embeds_900x256.bin", dtype=np.float32)
             img_metas['query_embeds'] = torch.tensor(img_metas['query_embeds'].reshape(900, 256), dtype=torch.float32)
 
@@ -330,10 +330,10 @@ def main():
         break
 
     nus_data = nuscenceData(data_loader)
-    data, img, lidar2img, grid = nus_data.load_data(cfg.model)
+    data, img, lidar2img, grid = nus_data.load_data(cfg.model, 7)
     petr_net = PetrWrapper(model)
     petr_net.set_data(data)
-    get_onnx_model(petr_net, img, lidar2img, grid, "/mnt/apollo/hozonlinearc_epoch32.onnx", 'cpu')
+    get_onnx_model(petr_net, img, lidar2img, grid, "/mnt/apollo/hz_7v.onnx", 'cpu')
 
     import sys
     sys.exit(0)

@@ -74,23 +74,32 @@ class nuscenceData:
     def __init__(self, data_loader):
         self._data_loader = data_loader
 
-    def load_data(self, model_cfg):
+    def load_data(self, model_cfg, num_camera=6):
         for data in self._data_loader:
             img = data['img'][0].data[0]
             data['img'][0] = img.to("cuda:0")
             img_metas = data['img_metas'][0].data[0][0]
-            # lidar2img = list(torch.tensor(arr) for arr in img_metas['lidar2img'])
-            # lidar2img = np.asarray(img_metas['lidar2img'])
-            # lidar2img = torch.tensor(lidar2img, dtype=torch.float32)
 
             data['img_metas'][0] = []
             data['img_metas'][0].append(img_metas)
 
             # save input
-            # data['img'][0].cpu().detach().numpy().tofile('/mnt/apollo/img.bin')
-            # img_metas['lidar2img'].cpu().detach().numpy().tofile('/mnt/apollo/lidar2img.bin')
+            print(data['img'][0].shape)
+            data['img'][0].cpu().detach().numpy().tofile('/mnt/apollo/img_1x7x3x480x800.bin')
 
-            print(img_metas)
+            img2lidars = []
+            for img_meta in [img_metas]:
+                img2lidar = []
+                for i in range(len(img_meta['lidar2img'])):
+                    img2lidar.append(np.linalg.inv(img_meta['lidar2img'][i]))
+                img2lidars.append(np.asarray(img2lidar))
+            img2lidars = np.asarray(img2lidars)
+            img2lidars = torch.tensor(img2lidars, dtype=torch.float32)  # (B, N, 4, 4)
+            print(img2lidars.shape)
+            img2lidars.cpu().detach().numpy().tofile('/mnt/apollo/lidar2img_1x{}x4x4.bin'.format(num_camera))
+
+            # print(img_metas)
+
             return data, data['img'][0], img_metas['lidar2img']
 
 class PetrWrapper(torch.nn.Module):
@@ -296,7 +305,7 @@ def main():
         break
 
     nus_data = nuscenceData(data_loader)
-    data, img, lidar2img = nus_data.load_data(cfg.model)
+    data, img, lidar2img = nus_data.load_data(cfg.model, 7)
     petr_net = PetrWrapper(model)
     petr_net.set_data(data)
     outs = petr_net(img, lidar2img)
