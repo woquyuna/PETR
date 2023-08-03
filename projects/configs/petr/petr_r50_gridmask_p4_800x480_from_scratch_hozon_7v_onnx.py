@@ -24,7 +24,7 @@ input_modality = dict(
     use_map=False,
     use_external=False)
 model = dict(
-    type='Petr3DPTH',
+    type='Petr3DONNX',
     use_grid_mask=True,
     img_backbone=dict(
         type='ResNet',
@@ -46,10 +46,11 @@ model = dict(
     #     out_channels=256,
     #     num_outs=2),    
     pts_bbox_head=dict(
-        type='PETRHeadPTH',
+        type='PETRHeadONNX',
         num_classes=10,
         in_channels=2048,
         num_query=900,
+        num_camera=7,
         LID=True,
         with_position=True,
         with_multiview=True,
@@ -128,11 +129,11 @@ ida_aug_conf = {
         "rand_flip": True,
     }
 train_pipeline = [
-    dict(type='LoadMultiViewImageFromFiles', to_float32=True),
+    dict(type='LoadMultiViewImageFromFiles7v', to_float32=True,color_type='unchanged', pseudo_tele_r=0.5),
     dict(type='LoadAnnotations3D', with_bbox_3d=True, with_label_3d=True, with_attr_label=False),
     dict(type='ObjectRangeFilter', point_cloud_range=point_cloud_range),
     dict(type='ObjectNameFilter', classes=class_names),
-    dict(type='ResizeCropFlipImage', data_aug_conf = ida_aug_conf, training=False),
+    dict(type='ResizeCropFlipImage7v', data_aug_conf = ida_aug_conf, training=False),
     dict(type='GlobalRotScaleTransImage',
             rot_range=[-0.3925, 0.3925],
             translation_std=[0, 0, 0],
@@ -146,8 +147,8 @@ train_pipeline = [
     dict(type='Collect3D', keys=['gt_bboxes_3d', 'gt_labels_3d', 'img'])
 ]
 test_pipeline = [
-    dict(type='LoadMultiViewImageFromFiles', to_float32=True),
-    dict(type='ResizeCropFlipImage', data_aug_conf = ida_aug_conf, training=False),
+    dict(type='LoadMultiViewImageFromFiles7v', to_float32=True,color_type='unchanged', pseudo_tele_r=0.5),
+    dict(type='ResizeCropFlipImage7v', data_aug_conf = ida_aug_conf, training=False),
     dict(type='NormalizeMultiviewImage', **img_norm_cfg),
     dict(type='PadMultiViewImage', size_divisor=32),
     dict(
@@ -165,7 +166,7 @@ test_pipeline = [
 ]
 
 data = dict(
-    samples_per_gpu=4,
+    samples_per_gpu=8,
     workers_per_gpu=8,
     train=dict(
         type=dataset_type,
@@ -190,7 +191,7 @@ data = dict(
 
 optimizer = dict(
     type='AdamW', 
-    lr=2e-4/8*4*2,
+    lr=2e-4/8*8*1,
     paramwise_cfg=dict(
         custom_keys={
             'img_backbone': dict(lr_mult=0.1),
@@ -208,7 +209,7 @@ lr_config = dict(
     min_lr_ratio=1e-3,
     # by_epoch=False
     )
-total_epochs = 32
+total_epochs = 24
 evaluation = dict(interval=1, pipeline=test_pipeline)
 find_unused_parameters = False
 checkpoint_config = dict(interval=1)

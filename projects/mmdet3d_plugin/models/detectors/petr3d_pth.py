@@ -21,9 +21,13 @@ from mmdet3d.core import (CameraInstance3DBoxes,LiDARInstance3DBoxes, bbox3d2res
 from mmdet3d.models.detectors.mvx_two_stage import MVXTwoStageDetector
 from projects.mmdet3d_plugin.models.utils.grid_mask import GridMask
 
+import time
+
+# run pth or test
+RUN_PTH = True
 
 @DETECTORS.register_module()
-class Petr3D(MVXTwoStageDetector):
+class Petr3DPTH(MVXTwoStageDetector):
     """Petr3D."""
 
     def __init__(self,
@@ -42,7 +46,7 @@ class Petr3D(MVXTwoStageDetector):
                  train_cfg=None,
                  test_cfg=None,
                  pretrained=None):
-        super(Petr3D, self).__init__(pts_voxel_layer, pts_voxel_encoder,
+        super(Petr3DPTH, self).__init__(pts_voxel_layer, pts_voxel_encoder,
                              pts_middle_encoder, pts_fusion_layer,
                              img_backbone, pts_backbone, img_neck, pts_neck,
                              pts_bbox_head, img_roi_head, img_rpn_head,
@@ -188,6 +192,12 @@ class Petr3D(MVXTwoStageDetector):
         """Test function of point cloud branch."""
         outs = self.pts_bbox_head(x, img_metas)
 
+        if RUN_PTH:
+            return outs
+        # print(outs)
+        # outs['all_cls_scores'][-1].cpu().detach().numpy().tofile('/mnt/apollo/all_cls_scores_pth.bin')
+        # outs['all_bbox_preds'][-1].cpu().detach().numpy().tofile('/mnt/apollo/all_bbox_preds_pth.bin')
+
         bbox_list = self.pts_bbox_head.get_bboxes(
             outs, img_metas, rescale=rescale)
         bbox_results = [
@@ -204,6 +214,9 @@ class Petr3D(MVXTwoStageDetector):
 
         bbox_pts = self.simple_test_pts(
             img_feats, img_metas, rescale=rescale)
+
+        if RUN_PTH:
+            return bbox_pts
 
         for result_dict, pts_bbox in zip(bbox_list, bbox_pts):
             result_dict['pts_bbox'] = pts_bbox

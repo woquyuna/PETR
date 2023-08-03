@@ -78,6 +78,7 @@ class PETRHeadPTH(AnchorFreeHead):
                  in_channels,
                  num_query=100,
                  num_reg_fcs=2,
+                 num_camera=6,
                  transformer=None,
                  sync_cls_avg_factor=False,
                  positional_encoding=dict(
@@ -165,6 +166,7 @@ class PETRHeadPTH(AnchorFreeHead):
 
         self.num_query = num_query
         self.num_classes = num_classes
+        self.num_camera = num_camera
         self.in_channels = in_channels
         self.num_reg_fcs = num_reg_fcs
         self.train_cfg = train_cfg
@@ -428,7 +430,7 @@ class PETRHeadPTH(AnchorFreeHead):
         # print(pos_embed)
         print("sin_embed:", sin_embed.shape)
         print(sin_embed[0][0][0][0])
-        sin_embed.cpu().detach().numpy().tofile('/mnt/apollo/input_sin_embed_1x6x256x15x25.bin')
+        sin_embed.cpu().detach().numpy().tofile('/mnt/apollo/input_sin_embed_1x{}x256x15x25.bin'.format(self.num_camera))
         print("sin_embed has written to /mnt/apollo/")
 
         reference_points = self.reference_points.weight

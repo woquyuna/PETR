@@ -76,6 +76,7 @@ class PETRHeadONNX(AnchorFreeHead):
                  in_channels,
                  num_query=100,
                  num_reg_fcs=2,
+                 num_camera=6,
                  transformer=None,
                  sync_cls_avg_factor=False,
                  positional_encoding=dict(
@@ -164,6 +165,7 @@ class PETRHeadONNX(AnchorFreeHead):
 
         self.num_query = num_query
         self.num_classes = num_classes
+        self.num_camera = num_camera
         self.in_channels = in_channels
         self.num_reg_fcs = num_reg_fcs
         self.train_cfg = train_cfg
@@ -295,7 +297,7 @@ class PETRHeadONNX(AnchorFreeHead):
 
         if torch.onnx.is_in_onnx_export():
             B = 1
-            N = 6
+            N = self.num_camera
         '''
         coords_h = torch.arange(H, device=img_feats[0].device).float() * pad_h / H
         coords_w = torch.arange(W, device=img_feats[0].device).float() * pad_w / W
@@ -421,7 +423,7 @@ class PETRHeadONNX(AnchorFreeHead):
         batch_size, num_cams = x.size(0), x.size(1)
         if torch.onnx.is_in_onnx_export():
             batch_size = 1
-            num_cams = 6
+            num_cams = self.num_camera
 
         input_img_h, input_img_w, _ = img_metas[0]['pad_shape'][0]
         # masks = x.new_ones(
